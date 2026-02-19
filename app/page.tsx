@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 
 const characters = [
   { id: 'princess', name: 'Princesa', emoji: '👸', nameEn: 'Princess' },
@@ -85,8 +86,17 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-purple-600 via-pink-500 to-orange-400">
       {/* Header */}
       <header className="text-center py-8 px-4">
+        <div className="flex justify-center mb-4">
+          <Image 
+            src="/logo.png" 
+            alt="Forever Kids Academy" 
+            width={200} 
+            height={114}
+            className="drop-shadow-lg"
+          />
+        </div>
         <h1 className="text-4xl md:text-6xl font-bold text-white drop-shadow-lg mb-2">
-          ✨ Forever Kids Story Magic ✨
+          ✨ Story Magic ✨
         </h1>
         <p className="text-xl md:text-2xl text-white/90">
           {language === 'es' ? '¡Crea tu propia aventura!' : 'Create your own adventure!'}
