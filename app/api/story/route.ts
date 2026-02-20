@@ -7,9 +7,11 @@ const characterMap: Record<string, { es: string; en: string }> = {
   unicorn: { es: 'un unicornio mágico', en: 'a magical unicorn' },
   superhero: { es: 'un superhéroe increíble', en: 'an amazing superhero' },
   mermaid: { es: 'una sirena aventurera', en: 'an adventurous mermaid' },
+  missshilpa: { es: 'la maestra más mágica, Miss Shilpa', en: 'the most magical teacher, Miss Shilpa' },
 }
 
 const placeMap: Record<string, { es: string; en: string }> = {
+  school: { es: 'la mágica Forever Kids Academy donde todo es posible', en: 'the magical Forever Kids Academy where anything is possible' },
   castle: { es: 'un castillo mágico lleno de secretos', en: 'a magical castle full of secrets' },
   space: { es: 'el espacio exterior entre las estrellas', en: 'outer space among the stars' },
   underwater: { es: 'un mundo mágico bajo el mar', en: 'a magical world under the sea' },

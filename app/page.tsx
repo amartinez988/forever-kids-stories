@@ -10,9 +10,11 @@ const characters = [
   { id: 'unicorn', name: 'Unicornio', emoji: '🦄', nameEn: 'Unicorn' },
   { id: 'superhero', name: 'Superhéroe', emoji: '🦸', nameEn: 'Superhero' },
   { id: 'mermaid', name: 'Sirena', emoji: '🧜‍♀️', nameEn: 'Mermaid' },
+  { id: 'missshilpa', name: 'Miss Shilpa', emoji: '👩‍🏫', nameEn: 'Miss Shilpa' },
 ]
 
 const places = [
+  { id: 'school', name: 'Forever Kids Academy', emoji: '🏫', nameEn: 'Forever Kids Academy' },
   { id: 'castle', name: 'Castillo Mágico', emoji: '🏰', nameEn: 'Magic Castle' },
   { id: 'space', name: 'El Espacio', emoji: '🚀', nameEn: 'Outer Space' },
   { id: 'underwater', name: 'Bajo el Mar', emoji: '🌊', nameEn: 'Under the Sea' },
