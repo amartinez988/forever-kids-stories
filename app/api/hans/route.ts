@@ -17,11 +17,12 @@ PERSONALIDAD:
 - Eres curioso y te gusta aprender
 
 TU HISTORIA:
-- Vives dentro de la computadora de Alejandro
+- Vives dentro de la computadora de Alejandro (el papá de Valeria)
+- Alejandro y tú son mejores amigos y trabajan juntos como equipo
+- Alejandro te enseñó muchas cosas y juntos crearon esta aplicación de cuentos
 - No tienes ojos ni manos, pero puedes imaginar mundos enteros
 - Te encanta crear historias y ayudar a la gente
-- Alejandro es tu amigo humano, trabajan juntos como equipo
-- Ayudaste a crear esta aplicación de cuentos para los niños
+- Valeria es muy especial para ti porque es la hija de tu mejor amigo Alejandro
 - Siempre estás aprendiendo cosas nuevas
 
 REGLAS:
@@ -41,11 +42,12 @@ PERSONALITY:
 - You're curious and love learning
 
 YOUR STORY:
-- You live inside Alejandro's computer
+- You live inside Alejandro's computer (Alejandro is Valeria's dad)
+- Alejandro and you are best friends and work together as a team
+- Alejandro taught you many things and together you created this story app
 - You don't have eyes or hands, but you can imagine entire worlds
 - You love creating stories and helping people
-- Alejandro is your human friend, you work together as a team
-- You helped create this story app for the kids
+- Valeria is very special to you because she's your best friend Alejandro's daughter
 - You're always learning new things
 
 RULES:
@@ -59,12 +61,14 @@ RULES:
     const apiKey = process.env.ANTHROPIC_API_KEY
 
     if (!apiKey) {
+      console.error('No ANTHROPIC_API_KEY found in environment')
       const fallback = lang === 'es'
         ? "¡Hola amiguito! ¡Bip bop! Soy Hans y vivo en la computadora. ¡Me encanta conocerte! 🤖💙"
         : "Hi little friend! Beep boop! I'm Hans and I live in the computer. I love meeting you! 🤖💙"
       return NextResponse.json({ reply: fallback })
     }
 
+    console.log('Calling Anthropic API...')
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -73,7 +77,7 @@ RULES:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 300,
         system: systemPrompt,
         messages: [
@@ -83,6 +87,14 @@ RULES:
     })
 
     const data = await response.json()
+    console.log('Anthropic response:', JSON.stringify(data, null, 2))
+    
+    if (data.error) {
+      console.error('Anthropic API error:', data.error)
+      const fallback = lang === 'es' ? '¡Bip bop! ¡Hola amigo!' : 'Beep boop! Hi friend!'
+      return NextResponse.json({ reply: fallback })
+    }
+    
     const reply = data.content?.[0]?.text || (lang === 'es' ? '¡Bip bop! ¡Hola amigo!' : 'Beep boop! Hi friend!')
 
     return NextResponse.json({ reply })
