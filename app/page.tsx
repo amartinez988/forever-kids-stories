@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 const characters = [
   { id: 'princess', name: 'Princesa', emoji: '👸', nameEn: 'Princess' },
@@ -176,6 +177,14 @@ export default function Home() {
           >
             🇺🇸 English
           </button>
+        </div>
+        <div className="mt-4">
+          <Link
+            href="/hans"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold rounded-full shadow-lg hover:scale-105 transition animate-pulse"
+          >
+            🤖 {language === 'es' ? '¡Conoce a Hans!' : 'Meet Hans!'} 💙
+          </Link>
         </div>
       </header>
 
