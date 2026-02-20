@@ -3,13 +3,31 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
+// Web Speech API types
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition
+    webkitSpeechRecognition: typeof SpeechRecognition
+  }
+}
+
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+}
+
 export default function MeetHans() {
   const [language, setLanguage] = useState<'es' | 'en'>('es')
   const [messages, setMessages] = useState<Array<{ role: 'hans' | 'kid'; text: string }>>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [hasIntroduced, setHasIntroduced] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
   const speak = (text: string) => {
     if ('speechSynthesis' in window) {
@@ -74,6 +92,54 @@ export default function MeetHans() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  const startListening = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert(language === 'es' ? '¡Tu navegador no soporta el micrófono!' : "Your browser doesn't support the microphone!")
+      return
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    const recognition = new SpeechRecognition()
+    recognitionRef.current = recognition
+
+    recognition.lang = language === 'es' ? 'es-ES' : 'en-US'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+
+    recognition.onstart = () => {
+      setIsListening(true)
+    }
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript
+      setInput(transcript)
+      setIsListening(false)
+      // Auto-send after capturing voice
+      setTimeout(() => {
+        const fakeEvent = { target: { value: transcript } }
+        setInput(transcript)
+      }, 100)
+    }
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error)
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognition.start()
+  }
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-600 via-purple-500 to-pink-500">
@@ -183,9 +249,19 @@ export default function MeetHans() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder={language === 'es' ? '¡Escribe algo a Hans!' : 'Say something to Hans!'}
+                  placeholder={language === 'es' ? '¡Escribe o habla!' : 'Type or speak!'}
                   className="flex-1 p-4 text-lg border-2 border-purple-200 rounded-2xl focus:border-purple-400 focus:outline-none"
                 />
+                <button
+                  onClick={isListening ? stopListening : startListening}
+                  className={`px-6 py-4 text-white text-xl font-bold rounded-2xl shadow-lg hover:scale-105 transition ${
+                    isListening 
+                      ? 'bg-gradient-to-r from-red-500 to-rose-500 animate-pulse' 
+                      : 'bg-gradient-to-r from-green-500 to-emerald-500'
+                  }`}
+                >
+                  {isListening ? '⏹️' : '🎤'}
+                </button>
                 <button
                   onClick={sendMessage}
                   disabled={loading || !input.trim()}
