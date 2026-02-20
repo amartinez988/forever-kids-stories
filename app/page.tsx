@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 
 const characters = [
@@ -41,6 +41,56 @@ export default function Home() {
   const [story, setStory] = useState('')
   const [loading, setLoading] = useState(false)
   const [language, setLanguage] = useState<'es' | 'en'>('es')
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [cameraActive, setCameraActive] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: 640, height: 480 } 
+      })
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        streamRef.current = stream
+        setCameraActive(true)
+      }
+    } catch (err) {
+      console.error('Error accessing camera:', err)
+      alert(language === 'es' ? '¡No pudimos acceder a la cámara!' : "Couldn't access camera!")
+    }
+  }, [language])
+
+  const capturePhoto = useCallback(() => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas')
+      canvas.width = videoRef.current.videoWidth
+      canvas.height = videoRef.current.videoHeight
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+        setPhoto(dataUrl)
+        // Stop camera
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop())
+          streamRef.current = null
+        }
+        setCameraActive(false)
+        setStep(2) // Move to character selection
+      }
+    }
+  }, [])
+
+  const skipPhoto = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    setCameraActive(false)
+    setStep(2)
+  }, [])
 
   const generateStory = async () => {
     setLoading(true)
@@ -52,7 +102,7 @@ export default function Home() {
       })
       const data = await response.json()
       setStory(data.story)
-      setStep(5)
+      setStep(6)
     } catch (error) {
       console.error('Error generating story:', error)
     }
@@ -81,6 +131,12 @@ export default function Home() {
     setPlace('')
     setAdventure('')
     setStory('')
+    setPhoto(null)
+    setCameraActive(false)
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
     stopSpeaking()
   }
 
@@ -147,8 +203,82 @@ export default function Home() {
           </div>
         )}
 
-        {/* Step 1: Character */}
+        {/* Step 1: Photo */}
         {step === 1 && (
+          <div className="bg-white/95 backdrop-blur rounded-3xl p-8 shadow-2xl text-center">
+            <h2 className="text-3xl font-bold text-purple-600 mb-6">
+              📸 {language === 'es' ? '¡Tomemos una foto!' : "Let's take a photo!"}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {language === 'es' 
+                ? '¡Tu foto aparecerá en tu historia!' 
+                : 'Your photo will appear in your story!'}
+            </p>
+            
+            <div className="relative w-80 h-60 mx-auto mb-6 bg-gray-900 rounded-2xl overflow-hidden">
+              {!cameraActive && !photo && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-6xl">📷</span>
+                </div>
+              )}
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${cameraActive ? 'block' : 'hidden'}`}
+              />
+              {photo && (
+                <img src={photo} alt="Your photo" className="w-full h-full object-cover" />
+              )}
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-4">
+              {!cameraActive && !photo && (
+                <button
+                  onClick={startCamera}
+                  className="px-8 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xl font-bold rounded-full shadow-lg hover:scale-105 transition"
+                >
+                  🎥 {language === 'es' ? 'Encender Cámara' : 'Turn On Camera'}
+                </button>
+              )}
+              {cameraActive && (
+                <button
+                  onClick={capturePhoto}
+                  className="px-8 py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xl font-bold rounded-full shadow-lg hover:scale-105 transition animate-pulse"
+                >
+                  📸 {language === 'es' ? '¡Tomar Foto!' : 'Take Photo!'}
+                </button>
+              )}
+              {photo && (
+                <>
+                  <button
+                    onClick={() => { setPhoto(null); startCamera(); }}
+                    className="px-6 py-3 bg-gray-500 text-white text-lg font-bold rounded-full shadow-lg hover:scale-105 transition"
+                  >
+                    🔄 {language === 'es' ? 'Otra vez' : 'Retake'}
+                  </button>
+                  <button
+                    onClick={() => setStep(2)}
+                    className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xl font-bold rounded-full shadow-lg hover:scale-105 transition"
+                  >
+                    {language === 'es' ? '¡Me gusta!' : 'I like it!'} →
+                  </button>
+                </>
+              )}
+            </div>
+            
+            <button 
+              onClick={skipPhoto} 
+              className="mt-6 text-gray-500 hover:text-purple-500 underline"
+            >
+              {language === 'es' ? 'Saltar este paso' : 'Skip this step'}
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: Character */}
+        {step === 2 && (
           <div className="bg-white/95 backdrop-blur rounded-3xl p-8 shadow-2xl">
             <h2 className="text-3xl font-bold text-purple-600 mb-6 text-center">
               {language === 'es' ? '¡Hola ' : 'Hi '}{kidName}! {language === 'es' ? '¿Quién quieres ser?' : 'Who do you want to be?'}
@@ -157,32 +287,11 @@ export default function Home() {
               {characters.map((c) => (
                 <button
                   key={c.id}
-                  onClick={() => { setCharacter(c.id); setStep(2); }}
+                  onClick={() => { setCharacter(c.id); setStep(3); }}
                   className="p-6 bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl hover:scale-105 transition shadow-lg border-4 border-transparent hover:border-purple-400"
                 >
                   <span className="text-6xl block mb-2">{c.emoji}</span>
                   <span className="text-xl font-bold text-purple-700">{language === 'es' ? c.name : c.nameEn}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Place */}
-        {step === 2 && (
-          <div className="bg-white/95 backdrop-blur rounded-3xl p-8 shadow-2xl">
-            <h2 className="text-3xl font-bold text-purple-600 mb-6 text-center">
-              {language === 'es' ? '¿A dónde quieres ir?' : 'Where do you want to go?'}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {places.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => { setPlace(p.id); setStep(3); }}
-                  className="p-6 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-2xl hover:scale-105 transition shadow-lg border-4 border-transparent hover:border-blue-400"
-                >
-                  <span className="text-6xl block mb-2">{p.emoji}</span>
-                  <span className="text-xl font-bold text-blue-700">{language === 'es' ? p.name : p.nameEn}</span>
                 </button>
               ))}
             </div>
@@ -192,21 +301,21 @@ export default function Home() {
           </div>
         )}
 
-        {/* Step 3: Adventure */}
+        {/* Step 3: Place */}
         {step === 3 && (
           <div className="bg-white/95 backdrop-blur rounded-3xl p-8 shadow-2xl">
             <h2 className="text-3xl font-bold text-purple-600 mb-6 text-center">
-              {language === 'es' ? '¿Qué aventura quieres vivir?' : 'What adventure do you want?'}
+              {language === 'es' ? '¿A dónde quieres ir?' : 'Where do you want to go?'}
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {adventures.map((a) => (
+              {places.map((p) => (
                 <button
-                  key={a.id}
-                  onClick={() => { setAdventure(a.id); setStep(4); }}
-                  className="p-6 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-2xl hover:scale-105 transition shadow-lg border-4 border-transparent hover:border-orange-400"
+                  key={p.id}
+                  onClick={() => { setPlace(p.id); setStep(4); }}
+                  className="p-6 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-2xl hover:scale-105 transition shadow-lg border-4 border-transparent hover:border-blue-400"
                 >
-                  <span className="text-6xl block mb-2">{a.emoji}</span>
-                  <span className="text-xl font-bold text-orange-700">{language === 'es' ? a.name : a.nameEn}</span>
+                  <span className="text-6xl block mb-2">{p.emoji}</span>
+                  <span className="text-xl font-bold text-blue-700">{language === 'es' ? p.name : p.nameEn}</span>
                 </button>
               ))}
             </div>
@@ -216,12 +325,41 @@ export default function Home() {
           </div>
         )}
 
-        {/* Step 4: Generate */}
+        {/* Step 4: Adventure */}
         {step === 4 && (
+          <div className="bg-white/95 backdrop-blur rounded-3xl p-8 shadow-2xl">
+            <h2 className="text-3xl font-bold text-purple-600 mb-6 text-center">
+              {language === 'es' ? '¿Qué aventura quieres vivir?' : 'What adventure do you want?'}
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {adventures.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => { setAdventure(a.id); setStep(5); }}
+                  className="p-6 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-2xl hover:scale-105 transition shadow-lg border-4 border-transparent hover:border-orange-400"
+                >
+                  <span className="text-6xl block mb-2">{a.emoji}</span>
+                  <span className="text-xl font-bold text-orange-700">{language === 'es' ? a.name : a.nameEn}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setStep(3)} className="mt-6 text-purple-500 hover:text-purple-700">
+              ← {language === 'es' ? 'Volver' : 'Back'}
+            </button>
+          </div>
+        )}
+
+        {/* Step 5: Generate */}
+        {step === 5 && (
           <div className="bg-white/95 backdrop-blur rounded-3xl p-8 shadow-2xl text-center">
             <h2 className="text-3xl font-bold text-purple-600 mb-6">
               {language === 'es' ? '¡Tu historia está lista!' : 'Your story is ready!'}
             </h2>
+            {photo && (
+              <div className="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden border-4 border-purple-400 shadow-lg">
+                <img src={photo} alt={kidName} className="w-full h-full object-cover" />
+              </div>
+            )}
             <div className="text-6xl mb-6 flex justify-center gap-4">
               {characters.find(c => c.id === character)?.emoji}
               {places.find(p => p.id === place)?.emoji}
@@ -241,18 +379,23 @@ export default function Home() {
                 <span>🪄 {language === 'es' ? '¡Crear mi historia!' : 'Create my story!'}</span>
               )}
             </button>
-            <button onClick={() => setStep(3)} className="mt-6 block mx-auto text-purple-500 hover:text-purple-700">
+            <button onClick={() => setStep(4)} className="mt-6 block mx-auto text-purple-500 hover:text-purple-700">
               ← {language === 'es' ? 'Volver' : 'Back'}
             </button>
           </div>
         )}
 
-        {/* Step 5: Story */}
-        {step === 5 && (
+        {/* Step 6: Story */}
+        {step === 6 && (
           <div className="bg-white/95 backdrop-blur rounded-3xl p-8 shadow-2xl">
             <h2 className="text-3xl font-bold text-purple-600 mb-6 text-center">
               ✨ {language === 'es' ? 'La Historia de ' : "The Story of "}{kidName} ✨
             </h2>
+            {photo && (
+              <div className="w-40 h-40 mx-auto mb-6 rounded-full overflow-hidden border-4 border-purple-400 shadow-xl">
+                <img src={photo} alt={kidName} className="w-full h-full object-cover" />
+              </div>
+            )}
             <div className="prose prose-lg max-w-none text-gray-700 mb-8 p-6 bg-purple-50 rounded-2xl">
               {story.split('\n').map((paragraph, i) => (
                 <p key={i} className="mb-4 text-xl leading-relaxed">{paragraph}</p>

@@ -63,8 +63,8 @@ export async function POST(request: Request) {
          The goal of the story is to ${adventureText}.
          Start the story with "${kidName}" as the main character.`
 
-    // Use OpenAI API
-    const apiKey = process.env.OPENAI_API_KEY
+    // Use Anthropic Claude API
+    const apiKey = process.env.ANTHROPIC_API_KEY
 
     if (!apiKey) {
       // Fallback story if no API key
@@ -91,25 +91,25 @@ And so, ${kidName} lived happily ever after. THE END! 🌟`
       return NextResponse.json({ story: fallbackStory })
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 1024,
+        system: systemPrompt,
         messages: [
-          { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: 800,
-        temperature: 0.8,
       }),
     })
 
     const data = await response.json()
-    const story = data.choices?.[0]?.message?.content || 'Story generation failed'
+    const story = data.content?.[0]?.text || 'Story generation failed'
 
     return NextResponse.json({ story })
   } catch (error) {
